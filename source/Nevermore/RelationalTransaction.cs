@@ -193,6 +193,11 @@ namespace Nevermore
 
         public void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool includeDefaultModelColumns = true, string tableHint = null) where TDocument : class, IId
         {
+            InsertMany(tableName, instances, includeDefaultModelColumns, includeDefaultModelColumns, tableHint);
+        }
+
+        public void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool autoIncludeIdColumn = true, bool autoIncludeJsonColumn = true, string tableHint = null) where TDocument : class, IId
+        {
             if (!instances.Any())
                 return;
 
@@ -210,18 +215,22 @@ namespace Nevermore
 
                 parameters.AddRange(instanceParameters);
 
-                var defaultIndexColumnPlaceholders = new string[] { };
-                if (includeDefaultModelColumns)
-                    defaultIndexColumnPlaceholders = new[] { $"@{instancePrefix}Id", $"@{instancePrefix}Json" };
+                var defaultIndexColumnPlaceholders = new List<string>();
+                if (autoIncludeIdColumn)
+                    defaultIndexColumnPlaceholders.Add($"@{instancePrefix}Id");
+                if (autoIncludeJsonColumn)
+                    defaultIndexColumnPlaceholders.Add($"@{instancePrefix}Json");
 
                 valueStatements.Add($"({string.Join(", ", mapping.IndexedColumns.Select(c => $"@{instancePrefix}{c.ColumnName}").Union(defaultIndexColumnPlaceholders))})");
 
                 instanceCount++;
             }
 
-            var defaultIndexColumns = new string[] { };
-            if (includeDefaultModelColumns)
-                defaultIndexColumns = new[] { "Id", "Json" };
+            var defaultIndexColumns = new List<string>();
+            if (autoIncludeIdColumn)
+                defaultIndexColumns.Add("Id");
+            if (autoIncludeJsonColumn)
+                defaultIndexColumns.Add("Json");
 
             var statement = string.Format(
                 "INSERT INTO dbo.[{0}] {1} ({2}) values {3}",
@@ -344,7 +353,7 @@ namespace Nevermore
         }
 
         public void DeleteInternal(DocumentMap mapping, string id, int? commandTimeoutSeconds)
-        { 
+        {
             var statement = $"DELETE from dbo.[{mapping.TableName}] WHERE Id = @Id";
 
             using (new TimedSection(Log, ms => $"Delete took {ms}ms in transaction '{name}': {statement}", 300))
@@ -391,7 +400,6 @@ namespace Nevermore
             }
         }
 
-
         public void ExecuteNonQuery(string query, CommandParameters args, int? commandTimeoutSeconds = null)
         {
             using (new TimedSection(Log, ms => $"Executing non query took {ms}ms in transaction '{name}': {query}", 300))
@@ -413,7 +421,6 @@ namespace Nevermore
                 }
             }
         }
-
 
         [Pure]
         public IEnumerable<T> ExecuteReader<T>(string query, CommandParameters args, int? commandTimeoutSeconds = null)
@@ -458,7 +465,6 @@ namespace Nevermore
                 long msUntilFirstRecord = -1;
                 using (var timedSection = new TimedSection(Log, ms => $"Reader took {ms}ms ({msUntilFirstRecord}ms until the first record) in transaction '{name}': {command.CommandText}", 300))
                 {
-
                     try
                     {
                         reader = command.ExecuteReaderWithRetry();
@@ -698,14 +704,10 @@ namespace Nevermore
                 sb.AppendLine(command);
         }
 
-
-
         public override string ToString()
         {
             return $"{CreatedTime} - {connection?.State} - {name}";
         }
-
-
 
         class ProjectionMapper : IProjectionMapper
         {

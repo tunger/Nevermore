@@ -167,6 +167,17 @@ namespace Nevermore
         void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool includeDefaultModelColumns, string tableHint = null) where TDocument : class, IId;
 
         /// <summary>
+        /// Immediately inserts multiple items into a specific table.
+        /// </summary>
+        /// <typeparam name="TDocument">The type of document being inserted.</typeparam>
+        /// <param name="tableName">The name of the table to insert the document into.</param>
+        /// <param name="instances">The document instances to insert (will be formed into a multiple VALUES for a single SQL INSERT.</param>
+        /// <param name="autoIncludeIdColumn">Whether to include the Id column in the mapping (can disable for certain tables that do not use our custom Ids - like the EventRelatedDocument table etc).</param>
+        /// <param name="autoIncludeJsonColumn">Whether to include the Json column in the mapping (can disable for certain tables that do not use Json - like the EventRelatedDocument table etc).</param>
+        /// <param name="tableHint">The table hint to use for the insert (useful when we need a table lock on insert).</param>
+        void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool autoIncludeIdColumn = true, bool autoIncludeJsonColumn = true, string tableHint = null) where TDocument : class, IId;
+
+        /// <summary>
         /// Updates an existing document in the database.
         /// </summary>
         /// <typeparam name="TDocument">The type of document being updated.</typeparam>
@@ -190,7 +201,6 @@ namespace Nevermore
         /// <param name="id">The id of the document to delete.</param>
         /// <param name="commandTimeoutSeconds">A custom timeout in seconds to use for the command instead of the default.</param>
         void DeleteById<TDocument>(string id, int? commandTimeoutSeconds = null) where TDocument : class;
-
 
         /// <summary>
         /// Commits the current pending transaction.
