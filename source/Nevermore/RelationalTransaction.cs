@@ -191,12 +191,7 @@ namespace Nevermore
             }
         }
 
-        public void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool includeDefaultModelColumns = true, string tableHint = null) where TDocument : class, IId
-        {
-            InsertMany(tableName, instances, includeDefaultModelColumns, includeDefaultModelColumns, tableHint);
-        }
-
-        public void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool autoIncludeIdColumn = true, bool autoIncludeJsonColumn = true, string tableHint = null) where TDocument : class, IId
+        public void InsertMany<TDocument>(string tableName, IReadOnlyCollection<TDocument> instances, bool includeIdIndexColumn = true, bool includeJsonIndexColumn = true, string tableHint = null) where TDocument : class, IId
         {
             if (!instances.Any())
                 return;
@@ -216,9 +211,9 @@ namespace Nevermore
                 parameters.AddRange(instanceParameters);
 
                 var defaultIndexColumnPlaceholders = new List<string>();
-                if (autoIncludeIdColumn)
+                if (includeIdIndexColumn)
                     defaultIndexColumnPlaceholders.Add($"@{instancePrefix}Id");
-                if (autoIncludeJsonColumn)
+                if (includeJsonIndexColumn)
                     defaultIndexColumnPlaceholders.Add($"@{instancePrefix}Json");
 
                 valueStatements.Add($"({string.Join(", ", mapping.IndexedColumns.Select(c => $"@{instancePrefix}{c.ColumnName}").Union(defaultIndexColumnPlaceholders))})");
@@ -227,9 +222,9 @@ namespace Nevermore
             }
 
             var defaultIndexColumns = new List<string>();
-            if (autoIncludeIdColumn)
+            if (includeIdIndexColumn)
                 defaultIndexColumns.Add("Id");
-            if (autoIncludeJsonColumn)
+            if (includeJsonIndexColumn)
                 defaultIndexColumns.Add("Json");
 
             var statement = string.Format(
