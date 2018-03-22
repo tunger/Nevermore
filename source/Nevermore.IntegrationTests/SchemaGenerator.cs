@@ -16,7 +16,7 @@ namespace Nevermore.IntegrationTests
             {
                 result.AppendFormat("  [{0}] {1} {2}, ", column.ColumnName, GetDatabaseType(column).ToUpperInvariant(), column.IsNullable ? "NULL" : "NOT NULL").AppendLine();
             }
-            result.AppendFormat("  [JSON] NVARCHAR(MAX) NOT NULL").AppendLine();
+            result.AppendFormat("  [JSON] NVARCHAR(MAX) NOT NULL,").AppendLine();
             result.AppendFormat("  [AutoId] [BIGINT] IDENTITY(1,1) NOT NULL").AppendLine(); // To help test a computed/read-only column.
             result.AppendLine(")");
 
