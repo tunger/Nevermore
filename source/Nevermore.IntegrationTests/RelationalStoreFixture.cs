@@ -163,5 +163,29 @@ namespace Nevermore.IntegrationTests
                 Assert.Equal("Customers must have a unique name", ex.Message);
             }
         }
+
+        [Fact]
+        public void ShouldReturnReadOnlyColumns()
+        {
+            // Insert data without supplying the readonly column "AutoId".
+            using (var transaction = Store.BeginTransaction())
+            {
+                var customer1 = new Customer { FirstName = "Markosh", LastName = "Apple", LuckyNumbers = new[] { 12, 13 }, Nickname = "Ally", Roles = { "web-server", "app-server" } };
+                var customer2 = new Customer { FirstName = "Markosh", LastName = "Banana", LuckyNumbers = new[] { 12, 13 }, Nickname = "B-man", Roles = { "db-server", "app-server" } };
+                transaction.Insert(customer1);
+                transaction.Insert(customer2);
+                transaction.Commit();
+            }
+
+            // Test that we can read our readonly/computed column data.
+            using (var transaction = Store.BeginTransaction())
+            {
+                var customers = transaction.Query<Customer>().ToList();
+                foreach (var customer in customers)
+                {
+                    Assert.True(customer.AutoId > 0);
+                }
+            }
+        }
     }
 }

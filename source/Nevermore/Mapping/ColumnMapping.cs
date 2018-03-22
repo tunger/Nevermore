@@ -75,6 +75,7 @@ namespace Nevermore.Mapping
         }
 
         public bool IsNullable { get; set; }
+        public bool IsReadOnly { get; set; }
         public string ColumnName { get; private set; }
 
         public DbType DbType
@@ -113,6 +114,12 @@ namespace Nevermore.Mapping
         public ColumnMapping WithMaxLength(int max)
         {
             maxLength = max;
+            return this;
+        }
+
+        public ColumnMapping ReadOnly(bool isReadOnly)
+        {
+            IsReadOnly = isReadOnly;
             return this;
         }
     }

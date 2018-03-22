@@ -12,14 +12,12 @@ namespace Nevermore.IntegrationTests
             var tableName = tableNameOverride ?? mapping.TableName;
             result.AppendLine("CREATE TABLE [" + tableName + "] (");
             result.AppendFormat("  [Id] NVARCHAR(50) NOT NULL CONSTRAINT [PK_{0}_Id] PRIMARY KEY CLUSTERED, ", tableName).AppendLine();
-
-            foreach (var column in mapping.IndexedColumns)
+            foreach (var column in mapping.IndexedColumns.Where(c => !c.IsReadOnly))
             {
                 result.AppendFormat("  [{0}] {1} {2}, ", column.ColumnName, GetDatabaseType(column).ToUpperInvariant(), column.IsNullable ? "NULL" : "NOT NULL").AppendLine();
             }
-
             result.AppendFormat("  [JSON] NVARCHAR(MAX) NOT NULL").AppendLine();
-
+            result.AppendFormat("  [AutoId] [BIGINT] IDENTITY(1,1) NOT NULL").AppendLine(); // To help test a computed/read-only column.
             result.AppendLine(")");
 
             foreach (var unique in mapping.UniqueConstraints)

@@ -166,8 +166,8 @@ namespace Nevermore
                 "INSERT INTO dbo.[{0}] {1} ({2}) values ({3})",
                 tableName ?? mapping.TableName,
                 tableHint ?? "",
-                string.Join(", ", mapping.IndexedColumns.Select(c => c.ColumnName).Union(new[] { "Id", "JSON" })),
-                string.Join(", ", mapping.IndexedColumns.Select(c => "@" + c.ColumnName).Union(new[] { "@Id", "@JSON" }))
+                string.Join(", ", mapping.IndexedColumns.Where(c => !c.IsReadOnly).Select(c => c.ColumnName).Union(new[] { "Id", "JSON" })),
+                string.Join(", ", mapping.IndexedColumns.Where(c => !c.IsReadOnly).Select(c => "@" + c.ColumnName).Union(new[] { "@Id", "@JSON" }))
                 ));
 
             var parameters = InstanceToParameters(instance, mapping);
@@ -229,7 +229,7 @@ namespace Nevermore
                 if (includeDefaultModelColumns)
                     defaultIndexColumnPlaceholders = new[] { $"@{instancePrefix}Id", $"@{instancePrefix}JSON" };
 
-                valueStatements.Add($"({string.Join(", ", mapping.IndexedColumns.Select(c => $"@{instancePrefix}{c.ColumnName}").Union(defaultIndexColumnPlaceholders))})");
+                valueStatements.Add($"({string.Join(", ", mapping.IndexedColumns.Where(c => !c.IsReadOnly).Select(c => $"@{instancePrefix}{c.ColumnName}").Union(defaultIndexColumnPlaceholders))})");
 
                 instanceCount++;
             }
@@ -242,7 +242,7 @@ namespace Nevermore
                 "INSERT INTO dbo.[{0}] {1} ({2}) values {3}",
                 tableName ?? mapping.TableName,
                 tableHint ?? "",
-                string.Join(", ", mapping.IndexedColumns.Select(c => c.ColumnName).Union(defaultIndexColumns)),
+                string.Join(", ", mapping.IndexedColumns.Where(c => !c.IsReadOnly).Select(c => c.ColumnName).Union(defaultIndexColumns)),
                 string.Join(", ", valueStatements)
                 );
 
@@ -314,7 +314,7 @@ namespace Nevermore
         {
             var mapping = mappings.Get(instance.GetType());
 
-            var updates = string.Join(", ", mapping.IndexedColumns.Select(c => "[" + c.ColumnName + "] = @" + c.ColumnName).Union(new[] { "[JSON] = @JSON" }));
+            var updates = string.Join(", ", mapping.IndexedColumns.Where(c => !c.IsReadOnly).Select(c => "[" + c.ColumnName + "] = @" + c.ColumnName).Union(new[] { "[JSON] = @JSON" }));
             var statement = UpdateStatementTemplates.GetOrAdd(mapping.TableName, t => string.Format(
                 "UPDATE dbo.[{0}] {1} SET {2} WHERE Id = @Id",
                 mapping.TableName,
@@ -592,7 +592,7 @@ namespace Nevermore
 
             result[$"{prefix}JSON"] = JsonConvert.SerializeObject(instance, mType, jsonSerializerSettings);
 
-            foreach (var c in mapping.IndexedColumns)
+            foreach (var c in mapping.IndexedColumns.Where(c => !c.IsReadOnly))
             {
                 var value = c.ReaderWriter.Read(instance);
                 if (value != null && value != DBNull.Value && value is string && c.MaxLength > 0)
