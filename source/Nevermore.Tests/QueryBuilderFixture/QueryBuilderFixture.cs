@@ -1321,6 +1321,138 @@ ORDER BY [RowNum]");
             parameterValues["_minrow"].ShouldBeEquivalentTo(11);
             parameterValues["_maxrow"].ShouldBeEquivalentTo(30);
         }
+
+        [Fact]
+        public void ShouldAllowAddingSameParameterTwice()
+        {
+            string actual = null;
+            CommandParameterValues parameters = null;
+            transaction.ExecuteReader<TodoItem>(Arg.Do<string>(s => actual = s),
+                Arg.Do<CommandParameterValues>(p => parameters = p));
+
+            var date = DateTime.Now;
+            CreateQueryBuilder<TodoItem>("Todos")
+                .Where("AddedDate", UnarySqlOperand.Equal, date)
+                .Where("AddedDate", UnarySqlOperand.Equal, date)
+                .First();
+
+            const string expected = "SELECT TOP 1 * FROM dbo.[Todos] WHERE ([AddedDate] = @addeddate) AND ([AddedDate] = @addeddate) ORDER BY [Id]";
+
+            parameters.Values.Count.ShouldBeEquivalentTo(1);
+            parameters["AddedDate"].ShouldBeEquivalentTo(date);
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void ShouldAllowSameParameterFromJoin()
+        {
+
+            string actual = null;
+            CommandParameterValues parameters = null;
+            transaction.ExecuteReader<TodoItem>(Arg.Do<string>(s => actual = s),
+                Arg.Do<CommandParameterValues>(p => parameters = p));
+
+            var date = DateTime.Now;
+
+            var orders = CreateQueryBuilder<IDocument>("Orders")
+                .Where("CreatedDate = @date")
+                .Parameter("date", date);
+
+            CreateQueryBuilder<TodoItem>("Customer")
+                .Where("JoinedDate = @date")
+                .Parameter("date", date)
+                .InnerJoin(orders.Subquery())
+                .On("Id", JoinOperand.Equal, "CustomerId")
+                .First();
+
+            const string expected = @"SELECT TOP 1 ALIAS_Customer_0.* FROM (SELECT * FROM dbo.[Customer] WHERE (JoinedDate = @date)) ALIAS_Customer_0
+INNER JOIN (SELECT * FROM dbo.[Orders] WHERE (CreatedDate = @date)) ALIAS_Orders_1 ON ALIAS_Customer_0.[Id] = ALIAS_Orders_1.[CustomerId]
+ORDER BY ALIAS_Customer_0.[Id]";
+
+            parameters.Values.Count.ShouldBeEquivalentTo(1);
+            parameters["date"].ShouldBeEquivalentTo(date);
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void ShouldThrowIfSameParameterHasDifferentValue()
+        {
+            var createdDate = DateTime.Now;
+
+            var orders = CreateQueryBuilder<IDocument>("Orders")
+                .Where("CreatedDate = @date")
+                .Parameter("date", createdDate);
+
+            var joinedDate = createdDate + TimeSpan.FromDays(1);
+            var query = CreateQueryBuilder<TodoItem>("Customer")
+                .Where("JoinedDate = @date")
+                .Parameter("date", joinedDate)
+                .InnerJoin(orders.Subquery())
+                .On("Id", JoinOperand.Equal, "CustomerId");
+
+            query.Invoking(q => q.First()).ShouldThrow<Exception>().WithMessage("The parameter date already exists with a different value");
+        }
+
+        [Fact]
+        public void ShouldGenerateUniqueParameterNames()
+        {
+            string actual = null;
+            CommandParameterValues parameters = null;
+            transaction.ExecuteReader<TodoItem>(Arg.Do<string>(s => actual = s),
+                Arg.Do<CommandParameterValues>(p => parameters = p));
+
+            var earlyDate = DateTime.Now;
+            var laterDate = earlyDate + TimeSpan.FromDays(1);
+            var query = CreateQueryBuilder<TodoItem>("Todos")
+                .Where("AddedDate", UnarySqlOperand.GreaterThan, earlyDate)
+                .Where("AddedDate", UnarySqlOperand.LessThan, laterDate);
+
+            query.First();
+
+            const string expected = @"SELECT TOP 1 * FROM dbo.[Todos] WHERE ([AddedDate] > @addeddate) AND ([AddedDate] < @addeddate_2) ORDER BY [Id]";
+
+            parameters.Values.Count.ShouldBeEquivalentTo(2);
+            parameters["addeddate"].ShouldBeEquivalentTo(earlyDate);
+            parameters["addeddate_2"].ShouldBeEquivalentTo(laterDate);
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void ShouldGenerateUniqueParameterNamesInJoin()
+        {
+            string actual = null;
+            CommandParameterValues parameters = null;
+            transaction.ExecuteReader<TodoItem>(Arg.Do<string>(s => actual = s),
+                Arg.Do<CommandParameterValues>(p => parameters = p));
+
+            var createdDate = DateTime.Now;
+            var sharedFieldName = "CreatedDate";
+
+            var orders = CreateQueryBuilder<IDocument>("Orders")
+                .Where(sharedFieldName, UnarySqlOperand.Equal, createdDate);
+
+            var joinDate = createdDate - TimeSpan.FromDays(1);
+
+            var query = CreateQueryBuilder<TodoItem>("Customer")
+                .Where(sharedFieldName, UnarySqlOperand.Equal, joinDate)
+                .InnerJoin(orders.Subquery())
+                .On("Id", JoinOperand.Equal, "CustomerId");
+
+            query.First();
+
+            const string expected = @"SELECT TOP 1 ALIAS_Customer_0.* FROM (SELECT * FROM dbo.[Customer] WHERE (CreatedDate = @date_2)) ALIAS_Customer_0
+INNER JOIN (SELECT * FROM dbo.[Orders] WHERE (CreatedDate = @date)) ALIAS_Orders_1 ON ALIAS_Customer_0.[Id] = ALIAS_Orders_1.[CustomerId]
+ORDER BY ALIAS_Customer_0.[Id]";
+
+            parameters.Values.Count.ShouldBeEquivalentTo(2);
+            parameters["date"].ShouldBeEquivalentTo(createdDate);
+            parameters["date_2"].ShouldBeEquivalentTo(joinDate);
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
     }
 
     public class Todos
