@@ -1429,7 +1429,7 @@ ORDER BY ALIAS_Customer_0.[Id]";
                 Arg.Do<CommandParameterValues>(p => parameters = p));
 
             var createdDate = DateTime.Now;
-            var sharedFieldName = "CreatedDate";
+            var sharedFieldName = "Date";
 
             var orders = CreateQueryBuilder<IDocument>("Orders")
                 .Where(sharedFieldName, UnarySqlOperand.Equal, createdDate);
@@ -1443,13 +1443,47 @@ ORDER BY ALIAS_Customer_0.[Id]";
 
             query.First();
 
-            const string expected = @"SELECT TOP 1 ALIAS_Customer_0.* FROM (SELECT * FROM dbo.[Customer] WHERE (CreatedDate = @date_2)) ALIAS_Customer_0
-INNER JOIN (SELECT * FROM dbo.[Orders] WHERE (CreatedDate = @date)) ALIAS_Orders_1 ON ALIAS_Customer_0.[Id] = ALIAS_Orders_1.[CustomerId]
+            const string expected = @"SELECT TOP 1 ALIAS_Customer_0.* FROM (SELECT * FROM dbo.[Customer] WHERE (Date = @date_2)) ALIAS_Customer_0
+INNER JOIN (SELECT * FROM dbo.[Orders] WHERE (Date = @date)) ALIAS_Orders_1 ON ALIAS_Customer_0.[Id] = ALIAS_Orders_1.[CustomerId]
 ORDER BY ALIAS_Customer_0.[Id]";
 
             parameters.Values.Count.ShouldBeEquivalentTo(2);
             parameters["date"].ShouldBeEquivalentTo(createdDate);
             parameters["date_2"].ShouldBeEquivalentTo(joinDate);
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void ShouldGenerateUniqueParameterNameForCustomWhereInSubqueryWhenParameterValueIsDifferent()
+        {
+            string actual = null;
+            CommandParameterValues parameters = null;
+            transaction.ExecuteReader<TodoItem>(Arg.Do<string>(s => actual = s),
+                Arg.Do<CommandParameterValues>(p => parameters = p));
+
+            var customerDate = DateTime.Now;
+            var orderDate = customerDate + TimeSpan.FromDays(1);
+
+            var orders = CreateQueryBuilder<IDocument>("Orders")
+                .Where("CreatedDate = @createdDATE")
+                .Parameter("CREATEDdate", orderDate);
+
+            var outerQuery = CreateQueryBuilder<IDocument>("Customer")
+                .Where("CreatedDate = @CReaTEdDAte")
+                .Parameter("CREAteDDATe", orderDate)
+                .InnerJoin(orders.Subquery())
+                .On("Id", JoinOperand.Equal, "CustomerId");
+
+            outerQuery.First();
+
+            const string expected = @"SELECT TOP 1 ALIAS_Customer_0.* FROM (SELECT * FROM dbo.[Customer] WHERE (CreatedDate = @createddate_2)) ALIAS_Customer_0
+INNER JOIN (SELECT * FROM dbo.[Orders] WHERE (CreatedDate = @createddate)) ALIAS_Orders_1 ON ALIAS_Customer_0.[Id] = ALIAS_Orders_1.[CustomerId]
+ORDER BY ALIAS_Customer_0.[Id]";
+
+            parameters.Values.Count.ShouldBeEquivalentTo(2);
+            parameters["createddate"].ShouldBeEquivalentTo(orderDate);
+            parameters["createddate_2"].ShouldBeEquivalentTo(customerDate);
 
             actual.ShouldBeEquivalentTo(expected);
         }
