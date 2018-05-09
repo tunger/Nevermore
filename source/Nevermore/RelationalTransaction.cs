@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -361,18 +362,47 @@ namespace Nevermore
             DeleteInternal(mapping, id, commandTimeoutSeconds);
         }
 
+        public void DeleteMany<TDocument>(IReadOnlyCollection<TDocument> instances, int? commandTimeoutSeconds = null)
+            where TDocument : class, IId
+        {
+            if (!instances.Any())
+                return;
+
+            var mapping = mappings.Get(instances.First().GetType()); // All instances share the same mapping.
+            DeleteInternal(mapping, instances.Select(i => (string)mapping.IdColumn.ReaderWriter.Read(i)).ToArray(), commandTimeoutSeconds);
+        }
+
         public void DeleteById<TDocument>(string id, int? commandTimeoutSeconds = null) where TDocument : class, IId
         {
             var mapping = mappings.Get(typeof(TDocument));
             DeleteInternal(mapping, id, commandTimeoutSeconds);
         }
 
-        public void DeleteInternal(DocumentMap mapping, string id, int? commandTimeoutSeconds)
+        public void DeleteManyById<TDocument>(IReadOnlyCollection<string> ids, int? commandTimeoutSeconds = null)
+            where TDocument : class, IId
         {
-            var statement = $"DELETE from dbo.[{mapping.TableName}] WHERE Id = @Id";
+            var mapping = mappings.Get(typeof(TDocument));
+            DeleteInternal(mapping, ids.ToArray(), commandTimeoutSeconds);
+        }
+
+        public void DeleteInternal(DocumentMap mapping, object value, int? commandTimeoutSeconds)
+        {
+            string whereClause;
+            string parameterName;
+            if (value is IEnumerable && (value is string) == false)
+            {
+                whereClause = "WHERE Id IN @Ids";
+                parameterName = "Ids";
+            }
+            else
+            {
+                whereClause = "WHERE Id = @Id";
+                parameterName = "Id";
+            }
+            var statement = $"DELETE from dbo.[{mapping.TableName}] {whereClause}";
 
             using (new TimedSection(Log, ms => $"Delete took {ms}ms in transaction '{name}': {statement}", 300))
-            using (var command = sqlCommandFactory.CreateCommand(connection, transaction, statement, new CommandParameterValues { { "Id", id } }, mapping, commandTimeoutSeconds))
+            using (var command = sqlCommandFactory.CreateCommand(connection, transaction, statement, new CommandParameterValues { { parameterName, value } }, mapping, commandTimeoutSeconds))
             {
                 AddCommandTrace(command.CommandText);
                 try

@@ -201,12 +201,28 @@ namespace Nevermore
         void Delete<TDocument>(TDocument instance, int? commandTimeoutSeconds = null) where TDocument : class, IId;
 
         /// <summary>
+        /// Deletes multiple existing document from the database.
+        /// </summary>
+        /// <typeparam name="TDocument">The type of document being deleted.</typeparam>
+        /// <param name="instances">The documents to delete.</param>
+        /// <param name="commandTimeoutSeconds">A custom timeout in seconds to use for the command instead of the default.</param>
+        void DeleteMany<TDocument>(IReadOnlyCollection<TDocument> instances, int? commandTimeoutSeconds = null) where TDocument : class, IId;
+
+        /// <summary>
         /// Deletes an existing document from the database by it's ID.
         /// </summary>
         /// <typeparam name="TDocument">The type of document being deleted.</typeparam>
         /// <param name="id">The id of the document to delete.</param>
         /// <param name="commandTimeoutSeconds">A custom timeout in seconds to use for the command instead of the default.</param>
         void DeleteById<TDocument>(string id, int? commandTimeoutSeconds = null) where TDocument : class, IId;
+
+        /// <summary>
+        /// Deletes multiple existing document from the database by their ID.
+        /// </summary>
+        /// <typeparam name="TDocument">The type of document being deleted.</typeparam>
+        /// <param name="ids">The ids of the documents to delete.</param>
+        /// <param name="commandTimeoutSeconds">A custom timeout in seconds to use for the command instead of the default.</param>
+        void DeleteManyById<TDocument>(IReadOnlyCollection<string> ids, int? commandTimeoutSeconds = null) where TDocument : class, IId;
 
         /// <summary>
         /// Allocate an ID for the specified type. The type must be mapped.

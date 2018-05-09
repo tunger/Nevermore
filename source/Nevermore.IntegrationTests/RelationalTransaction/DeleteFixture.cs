@@ -42,14 +42,54 @@ namespace Nevermore.IntegrationTests.RelationalTransaction
                 trn.Load<Product>(id).Should().BeNull();
         }
 
+        [Fact]
+        public void DeleteManyByEntity()
+        {
+            var productIds = new[]
+            {
+                AddTestProduct(),
+                AddTestProduct("bar"),
+                AddTestProduct("baz")
+            };
 
-        string AddTestProduct()
+            using (var trn = Store.BeginTransaction())
+            {
+                var products = trn.Load<Product>(productIds);
+                trn.DeleteMany(products);
+                trn.Commit();
+            }
+
+            using (var trn = Store.BeginTransaction())
+                trn.Load<Product>(productIds).Should().BeNullOrEmpty();
+        }
+
+        [Fact]
+        public void DeleteManyById()
+        {
+            var productIds = new[]
+            {
+                AddTestProduct(),
+                AddTestProduct("bar"),
+                AddTestProduct("baz")
+            };
+
+            using (var trn = Store.BeginTransaction())
+            {
+                trn.DeleteManyById<Product>(productIds);
+                trn.Commit();
+            }
+
+            using (var trn = Store.BeginTransaction())
+                trn.Load<Product>(productIds).Should().BeNullOrEmpty();
+        }
+
+        string AddTestProduct(string name = "foo")
         {
             using (var trn = Store.BeginTransaction())
             {
                 var product = new Product()
                 {
-                    Name = "foo"
+                    Name = name
                 };
                 trn.Insert(product);
                 trn.Commit();
