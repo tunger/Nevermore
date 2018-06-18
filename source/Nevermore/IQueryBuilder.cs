@@ -83,6 +83,14 @@ namespace Nevermore
         IQueryBuilder<TRecord> Where(string whereClause);
 
         /// <summary>
+        /// Adds a nullary where clause to the query.
+        /// </summary>
+        /// <param name="fieldName">The name of one of the columns in the query. The where condition will be evaluated against the value of this column.</param>
+        /// <param name="operand">The operator to be used in the where clause</param>
+        /// <returns>The query builder that can be used to add parameters to the query, and then further modify the query, or execute the query</returns>
+        IQueryBuilder<TRecord> Where(string fieldName, NullarySqlOperand operand);
+        
+        /// <summary>
         /// Adds a parameterised unary where clause to the query. This does not add a value for that parameter, and is therefore useful for Functions and Stored Procedures.
         /// Prefer using Where methods from <see cref="QueryBuilderWhereExtensions" /> in normal queries, which allows you to additionally provide a value for the parameter.
         /// </summary>

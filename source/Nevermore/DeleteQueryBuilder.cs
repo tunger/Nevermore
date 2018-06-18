@@ -37,6 +37,11 @@ namespace Nevermore
             return this;
         }
 
+        public IDeleteQueryBuilder<TRecord> Where(string fieldName, NullarySqlOperand operand)
+        {
+            return AddWhereClause(new NullaryWhereClause(new WhereFieldReference(fieldName), operand));
+        }
+
         public IUnaryParameterDeleteQueryBuilder<TRecord> WhereParameterised(string fieldName, UnarySqlOperand operand,
             Parameter parameter)
         {

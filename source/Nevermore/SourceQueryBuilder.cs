@@ -247,6 +247,11 @@ namespace Nevermore
             return Builder.Where(whereClause);
         }
 
+        public IQueryBuilder<TRecord> Where(string fieldName, NullarySqlOperand operand)
+        {
+            return Builder.Where(fieldName, operand);
+        }
+
         public IUnaryParameterQueryBuilder<TRecord> WhereParameterised(string fieldName, UnarySqlOperand operand, Parameter parameter)
         {
             return Builder.WhereParameterised(fieldName, operand, parameter);

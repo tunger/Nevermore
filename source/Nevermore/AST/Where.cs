@@ -155,4 +155,28 @@ AND ", subClauses.Select(c => $"({c.GenerateSql()})"));
             }
         }
     }
+
+    public class NullaryWhereClause : IWhereClause
+    {
+        readonly IWhereFieldReference whereFieldReference;
+        readonly NullarySqlOperand operand;
+
+        public NullaryWhereClause(IWhereFieldReference whereFieldReference, NullarySqlOperand operand)
+        {
+            this.whereFieldReference = whereFieldReference;
+            this.operand = operand;
+        }
+
+        public override string ToString() => GenerateSql();
+        public string GenerateSql()
+        {
+            switch(operand)
+            {
+                case NullarySqlOperand.IsNull:
+                    return $"{whereFieldReference.GenerateSql()} IS NULL";
+                default:
+                    throw new NotSupportedException("Operand " + operand + " is not supported!");
+            }
+        }
+    }
 }

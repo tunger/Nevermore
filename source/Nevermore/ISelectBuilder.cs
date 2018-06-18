@@ -9,6 +9,7 @@ namespace Nevermore
 
         void AddOrder(string fieldName, bool descending);
         void IgnoreDefaultOrderBy();
+        void AddWhere(NullaryWhereParameter whereParams);
         void AddWhere(UnaryWhereParameter whereParams);
         void AddWhere(BinaryWhereParameter whereParams);
         void AddWhere(ArrayWhereParameter whereParams);

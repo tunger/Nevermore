@@ -33,6 +33,12 @@ namespace Nevermore
         {
             return new JoinSelectBuilder(From, new List<IWhereClause>(WhereClauses), new List<OrderByField>(OrderByClauses), ColumnSelection, RowSelection, ShouldIgnoreDefaultOrderBy);
         }
+        
+        public override void AddWhere(NullaryWhereParameter whereParams)
+        {
+            WhereClauses.Add(new NullaryWhereClause(new AliasedWhereFieldReference(From.Source.Alias, new WhereFieldReference(whereParams.FieldName)), 
+                whereParams.Operand));
+        }
 
         public override void AddWhere(UnaryWhereParameter whereParams)
         {
@@ -209,6 +215,11 @@ namespace Nevermore
         public void IgnoreDefaultOrderBy()
         {
             ShouldIgnoreDefaultOrderBy = true;
+        }
+
+        public virtual void AddWhere(NullaryWhereParameter whereParams)
+        {
+            WhereClauses.Add(new NullaryWhereClause(new WhereFieldReference(whereParams.FieldName), whereParams.Operand));
         }
 
         public virtual void AddWhere(UnaryWhereParameter whereParams)

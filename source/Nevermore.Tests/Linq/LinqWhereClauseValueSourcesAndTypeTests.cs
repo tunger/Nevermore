@@ -187,7 +187,24 @@ ORDER BY [Id]");
             parameters.Single().ParameterName.Should().Be("enum");
             paramValues.Should().Contain("enum", Bar.A);
         }
-        
+
+        [Test]
+        public void WithNull()
+        {
+            var (builder, (parameters, paramValues)) = NewQueryBuilder();
+
+            var result = builder.Where(f => f.String == null);
+
+            result.DebugViewRawQuery()
+                .Should()
+                .Be(@"SELECT *
+FROM dbo.[Foo]
+WHERE ([String] IS NULL)
+ORDER BY [Id]");
+
+            parameters.Should().BeEmpty();
+            paramValues.Should().BeEmpty();
+        }
     
         static void AssertResult(IQueryBuilder<Foo> result, (Parameters, CommandParameterValues) captures)
         {

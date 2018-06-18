@@ -144,6 +144,14 @@ namespace Nevermore
 
             var value = GetValueFromExpression(binaryExpression.Right, property.PropertyType);
             var fieldName = property.Name;
+            if (value == null)
+            {
+                if (operand == UnarySqlOperand.Equal)
+                {
+                    return queryBuilder.WhereIsNull(fieldName);
+                }
+                throw new NotSupportedException("Null values can only be compared with the equals operator (==)");
+            }
             return queryBuilder.Where(fieldName, operand, value);
         }
         
@@ -157,6 +165,19 @@ namespace Nevermore
             var objectMember = Expression.Convert(expression, typeof(object));
             var getterLambda = Expression.Lambda<Func<object>>(objectMember);
             return getterLambda.Compile()();
+        }
+
+        /// <summary>
+        /// Adds a WHERE ${column} IS NULL expression to the query.
+        /// </summary>
+        /// <typeparam name="TRecord">The record type of the query builder</typeparam>
+        /// <param name="queryBuilder">The query builder</param>
+        /// <param name="fieldName">The name of one of the column in the query. The where condition will be evaluated against the value of this column.</param>
+        /// <returns>The query builder that can be used to further modify the query, or execute the query</returns>
+        public static IQueryBuilder<TRecord> WhereIsNull<TRecord>(this IQueryBuilder<TRecord> queryBuilder, string fieldName)
+            where TRecord : class
+        {
+            return queryBuilder.Where(fieldName, NullarySqlOperand.IsNull);
         }
 
         /// <summary>

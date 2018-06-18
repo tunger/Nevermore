@@ -809,6 +809,19 @@ AND ([Completed] <= @endvalue_1)";
         }
 
         [Test]
+        public void ShouldGenerateCorrectSqlQueryForWhereIsNull()
+        {
+            const string expectedSql = @"SELECT *
+FROM dbo.[Project]
+WHERE ([OwnerId] IS NULL)
+ORDER BY [Id]";
+            var queryBuilder = CreateQueryBuilder<IDocument>("Project")
+                .WhereIsNull("OwnerId");
+
+            queryBuilder.DebugViewRawQuery().Should().Be(expectedSql);
+        }
+
+        [Test]
         public void ShouldGetCorrectSqlQueryForOrderBy()
         {
             const string expectedSql = @"SELECT TOP 1 *

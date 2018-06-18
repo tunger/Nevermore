@@ -20,4 +20,10 @@ namespace Nevermore
         LessThanOrEqual,
         NotEqual
     }
+
+    public enum NullarySqlOperand
+    {
+        IsNull,
+        IsNotNull
+    }
 }
