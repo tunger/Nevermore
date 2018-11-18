@@ -448,6 +448,12 @@ namespace Nevermore
                         if (jsonIndex >= 0)
                         {
                             var json = reader[jsonIndex].ToString();
+                            if (string.IsNullOrEmpty(json))
+                            {
+                                Log.WarnFormat($"JSON is invalid for {instanceType} record with id {reader[idIndex]}.");
+                                continue;
+                            }
+
                             var deserialized = JsonConvert.DeserializeObject(json, instanceType, jsonSerializerSettings);
                             // This is to handle polymorphic queries. e.g. Query<AzureAccount>()
                             // If the deserialized object is not the desired type, then we are querying for a specific sub-type
