@@ -110,8 +110,7 @@ namespace Nevermore
         {
             var connectionStringBuilder = new SqlConnectionStringBuilder(connectionString)
             {
-                MultipleActiveResultSets = true,
-                ApplicationName = applicationName,
+                ApplicationName = applicationName
             };
 
             OverrideValueIfNotSet(connectionStringBuilder, nameof(connectionStringBuilder.ConnectTimeout),
