@@ -758,6 +758,24 @@ ORDER BY [Id]";
 
             queryBuilder.DebugViewRawQuery().Should().Be(expectedSql);
         }
+        
+        [Test]
+        public void ShouldGetCorrectSqlQueryForWhereNotInUsingWhereList()
+        {
+            var matches = new List<State>
+            {
+                State.Queued,
+                State.Running
+            };
+            const string expectedSql = @"SELECT *
+FROM dbo.[Project]
+WHERE ([State] NOT IN (@state0_0, @state1_1))
+ORDER BY [Id]";
+            var queryBuilder = CreateQueryBuilder<IDocument>("Project")
+                .Where("State", ArraySqlOperand.NotIn, matches);
+
+            queryBuilder.DebugViewRawQuery().Should().Be(expectedSql);
+        }
 
         [Test]
         public void ShouldGetCorrectSqlQueryForWhereInUsingEmptyList()
@@ -787,6 +805,30 @@ WHERE ([Title] IN (@title0_0, @title1_1))";
 
             var result = CreateQueryBuilder<TodoItem>("TodoItem")
                 .Where("Title", ArraySqlOperand.In, new[] { "nevermore", "octofront" })
+                .Count();
+
+            transaction.Received(1).ExecuteScalar<int>(
+                Arg.Is(expectedSql),
+                Arg.Is<CommandParameterValues>(cp =>
+                    cp["title0_0"].ToString() == "nevermore"
+                    && cp["title1_1"].ToString() == "octofront"));
+
+            result.Should().Be(1);
+        }
+        
+        [Test]
+        public void ShouldGetCorrectSqlQueryForWhereNotInExtension()
+        {
+            const string expectedSql = @"SELECT COUNT(*)
+FROM dbo.[TodoItem]
+WHERE ([Title] NOT IN (@title0_0, @title1_1))";
+
+
+            transaction.ExecuteScalar<int>(Arg.Is<string>(s => s.Equals(expectedSql)), Arg.Any<CommandParameterValues>())
+                .Returns(1);
+
+            var result = CreateQueryBuilder<TodoItem>("TodoItem")
+                .Where("Title", ArraySqlOperand.NotIn, new[] { "nevermore", "octofront" })
                 .Count();
 
             transaction.Received(1).ExecuteScalar<int>(

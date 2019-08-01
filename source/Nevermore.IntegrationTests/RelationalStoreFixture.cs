@@ -99,6 +99,29 @@ namespace Nevermore.IntegrationTests
                 customer.FirstName.Should().Be("Alice");
             }
         }
+        
+        [Test]
+        public void ShouldHandleIdsWithNotInOperand()
+        {
+            string excludedCustomerId;
+            using (var transaction = Store.BeginTransaction())
+            {
+                var customer = new Customer {FirstName = "Alice", LastName = "Apple"};
+                transaction.Insert(customer);
+                transaction.Insert(new Customer{FirstName = "Bill", LastName = "Jobs"});
+                transaction.Commit();
+                excludedCustomerId = customer.Id;
+            }
+
+            using (var transaction = Store.BeginTransaction())
+            {
+                var customer = transaction.TableQuery<Customer>()
+                    .Where("Id", ArraySqlOperand.NotIn, new[] {excludedCustomerId})
+                    .Stream()
+                    .Single();
+                customer.FirstName.Should().Be("Bill");
+            }
+        }
 
         [Test]
         public void ShouldMultiSelect()
